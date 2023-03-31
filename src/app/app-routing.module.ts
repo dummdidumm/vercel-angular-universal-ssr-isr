@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { BaseRouteComponent } from './base-route/base-route.component';
 import { AnotherRouteComponent } from './another-route/another-route.component';
+import { IsrRouteComponent } from './isr-route/isr-route.component';
 
 const routes: Routes = [
   {
@@ -11,6 +12,10 @@ const routes: Routes = [
   {
     path: 'another-route',
     component: AnotherRouteComponent,
+  },
+  {
+    path: 'isr-route',
+    component: IsrRouteComponent,
   },
 ];
 

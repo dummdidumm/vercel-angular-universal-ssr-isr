@@ -23,33 +23,56 @@ for (const file of static_files) {
   copyFileSync(`${project_dist}/browser/${file}`, `${out_dir}/static/${file}`);
 }
 
-// serverless function
-const fn_dir = `${out_dir}/functions/ssr.func`;
-write(
-  `${fn_dir}/.vc-config.json`,
-  JSON.stringify({
-    runtime: "nodejs18.x",
-    handler: "index.js",
-    launcherType: "Nodejs",
-  })
-);
-copyFileSync(`${project_dist}/server/main.js`, `${fn_dir}/main.js`);
-write(`${fn_dir}/index.js`, `module.exports = require("./main.js").app();`);
-// static files also need to be copied to the function dir because the server runtime uses them
-mkdirSync(`${fn_dir}/${project_dist}/browser`, { recursive: true });
-for (const file of static_files) {
-  // TODO symlink instead?
-  copyFileSync(
-    `${project_dist}/browser/${file}`,
-    `${fn_dir}/${project_dist}/browser/${file}`
+// serverless functions
+let group = 1;
+function create_serverless_function(name, isr = undefined) {
+  const fn_dir = `${out_dir}/functions/${name}.func`;
+  write(
+    `${fn_dir}/.vc-config.json`,
+    JSON.stringify({
+      runtime: "nodejs18.x",
+      handler: "index.js",
+      launcherType: "Nodejs",
+    })
   );
+  copyFileSync(`${project_dist}/server/main.js`, `${fn_dir}/main.js`);
+  write(`${fn_dir}/index.js`, `module.exports = require("./main.js").app();`);
+
+  // static files also need to be copied to the function dir because the server runtime uses them
+  mkdirSync(`${fn_dir}/${project_dist}/browser`, { recursive: true });
+  for (const file of static_files) {
+    // TODO symlink to save space?
+    copyFileSync(
+      `${project_dist}/browser/${file}`,
+      `${fn_dir}/${project_dist}/browser/${file}`
+    );
+  }
+
+  if (isr) {
+    write(
+      `${out_dir}/functions/${name}.prerender-config.json`,
+      JSON.stringify({
+        expiration: 30,
+        group: group++,
+        allowQuery: ["__pathname"],
+        passQuery: true,
+        // TODO fallback? Angular Universal has a prerender mechanism so maybe possible
+      })
+    );
+  }
 }
+
+create_serverless_function("ssr");
+create_serverless_function("isr", true);
 
 // config
 write(
   `${out_dir}/config.json`,
   JSON.stringify({
     version: 3,
-    routes: [{ src: "/.*", dest: "/ssr" }],
+    routes: [
+      { src: "/isr-route$", dest: "/isr?__pathname=/isr-route" },
+      { src: "/.*", dest: "/ssr" },
+    ],
   })
 );
