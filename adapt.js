@@ -36,7 +36,7 @@ function create_serverless_function(name, isr = undefined) {
     })
   );
   copyFileSync(`${project_dist}/server/main.js`, `${fn_dir}/main.js`);
-  write(`${fn_dir}/index.js`, `module.exports = require("./main.js").app();`);
+  write(`${fn_dir}/index.js`, `module.exports = require("./main.js").handle;`);
 
   // static files also need to be copied to the function dir because the server runtime uses them
   mkdirSync(`${fn_dir}/${project_dist}/browser`, { recursive: true });
@@ -71,6 +71,8 @@ write(
   JSON.stringify({
     version: 3,
     routes: [
+      { src: "/", dest: "/ssr" }, // TODO is there a better way to prevent serving index.html from the static dir other than placing this before { handle: "filesystem" }?
+      { handle: "filesystem" },
       { src: "/isr-route$", dest: "/isr?__pathname=/isr-route" },
       { src: "/.*", dest: "/ssr" },
     ],
